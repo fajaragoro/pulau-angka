@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0F8F8A"/>
+  <ellipse cx="256" cy="372" rx="190" ry="62" fill="#FFF3DC" stroke="#1D2A44" stroke-width="16"/>
+  <path d="M256 96 L372 330 H140 Z" fill="#FFC93C" stroke="#1D2A44" stroke-width="16" stroke-linejoin="round"/>
+  <path d="M208 262 l96 0 M226 216 l60 0" stroke="#1D2A44" stroke-width="14" stroke-linecap="round"/>
+  <text x="256" y="322" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="62" fill="#1D2A44">×</text>
+</svg>
