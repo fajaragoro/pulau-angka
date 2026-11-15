@@ -57,3 +57,7 @@ Settings → Environment variables, lalu deploy ulang.
   batas waktu dan tidak mengubah data penguasaan.
 - Kartu Ingat: saat anak salah (di luar tes), waktu berhenti, jawaban + satu kalimat jurus ditampilkan dan
   dibacakan, lalu anak mengetik ulang dari ingatan sebelum lanjut. Tombol "Lihat jurus" juga menghentikan waktu.
+- Urutan sesi: jurus dipelajari dulu (tanpa jam), anak menekan "Mulai soal!", baru tes awal/pemanasan dan latihan.
+- Peta Perjalanan: 30 pulau (satu per hari) dengan perahu di pulau hari ini; pulau yang sudah dilewati bisa
+  diketuk untuk mengulang jurus hari itu.
+- Pergi ke Kantin: 10 soal bertingkat (mudah → sedang → sulit) berisi perkalian, pembagian, dan kembalian.

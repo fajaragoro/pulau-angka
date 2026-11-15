@@ -9,6 +9,7 @@ import { CodeEntry, Profiles } from './ui/Access';
 import { type DemoKid, DemoResult, DemoSession, Home, Secret } from './ui/Demo';
 import { Certificate, ParentArea, Privacy, ReportView } from './ui/Parent';
 import { BonusMenu, BonusSession, DailySession, ProfileHome, SummaryView } from './ui/Play';
+import { DayReview } from './ui/Journey';
 import { Kantin } from './ui/Kantin';
 import { ParentGate } from './ui/parts';
 import { flags, useStore } from './ui/store';
@@ -19,6 +20,7 @@ type Route =
   | { n: 'summary'; s: Summary }
   | { n: 'bonusRun'; plan: SessionPlan }
   | { n: 'replay'; plan: SessionPlan }
+  | { n: 'day'; day: number }
   | { n: 'report'; from: 'phome' | 'parent' | 'cert' }
   | { n: 'privacy'; back: Route };
 
@@ -47,7 +49,7 @@ export default function App() {
     if (hasAccess) requestPersist();
   }, [hasAccess]);
 
-  const go = (n: Exclude<Route['n'], 'demoResult' | 'summary' | 'bonusRun' | 'replay' | 'report' | 'privacy'>) => setRoute({ n });
+  const go = (n: Exclude<Route['n'], 'demoResult' | 'summary' | 'bonusRun' | 'replay' | 'day' | 'report' | 'privacy'>) => setRoute({ n });
   const toCode = () => go(hasAccess ? 'profiles' : 'code');
   const afterParent = (): Route => ({ n: profile ? 'phome' : 'profiles' });
 
@@ -132,7 +134,7 @@ export default function App() {
     } else {
       switch (route.n) {
         case 'phome':
-          screen = <ProfileHome p={profile} onPlay={() => go('session')} onBonus={() => go('bonus')} onReport={() => setRoute({ n: 'report', from: 'phome' })} onCert={() => go('cert')} onReplay={startReplay} onKantin={() => go('kantin')} onSwitch={() => go('profiles')} onParent={() => setGate({ n: 'parent' })} />;
+          screen = <ProfileHome p={profile} onPlay={() => go('session')} onBonus={() => go('bonus')} onReport={() => setRoute({ n: 'report', from: 'phome' })} onCert={() => go('cert')} onReplay={startReplay} onKantin={() => go('kantin')} onDay={(day) => setRoute({ n: 'day', day })} onSwitch={() => go('profiles')} onParent={() => setGate({ n: 'parent' })} />;
           break;
         case 'session':
           screen = <DailySession key={profile.progress.sessionsDone} p={profile} onFinish={finishSession} onQuit={() => go('phome')} />;
@@ -142,6 +144,9 @@ export default function App() {
           break;
         case 'replay':
           screen = <DailySession key="replay" p={profile} replay={route.plan} onFinish={finishSession} onQuit={() => go('phome')} />;
+          break;
+        case 'day':
+          screen = <DayReview p={profile} day={route.day} onBack={() => go('phome')} />;
           break;
         case 'kantin':
           screen = <Kantin p={profile} onBack={() => go('phome')} />;

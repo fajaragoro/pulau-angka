@@ -238,7 +238,7 @@ function VisView({ vis }: { vis: Vis }) {
   }
 }
 
-export function JurusPlayer({ list, onDone }: { list: Jurus[]; onDone: () => void }) {
+export function JurusPlayer({ list, onDone, label = 'Jurus baru' }: { list: Jurus[]; onDone: () => void; label?: string }) {
   const [ji, setJi] = useState(0);
   const [si, setSi] = useState(0);
   const [round, setRound] = useState(0);
@@ -270,7 +270,7 @@ export function JurusPlayer({ list, onDone }: { list: Jurus[]; onDone: () => voi
     <div className="stack">
       <div className="card sun tight center">
         <div className="small">
-          Jurus baru{list.length > 1 ? ` (${ji + 1}/${list.length})` : ''}
+          {label}{list.length > 1 ? ` (${ji + 1}/${list.length})` : ''}
         </div>
         <h2>{j.title}</h2>
       </div>
@@ -315,7 +315,7 @@ const HP_START = 4;
 /** Waktu jurus yang dihitung ke sesi paling banyak 60 detik; mengulang jurus tidak memotong waktu latihan. */
 const JURUS_BUDGET_MS = 60_000;
 
-type View = { t: 'intro' } | { t: 'quiz'; fact: FactId; flip: boolean; test: boolean; key: number; pi: number } | { t: 'jurus'; pi: number };
+type View = { t: 'prejurus' } | { t: 'intro' } | { t: 'quiz'; fact: FactId; flip: boolean; test: boolean; key: number; pi: number } | { t: 'jurus'; pi: number };
 
 interface RunnerProps {
   plan: SessionPlan;
@@ -325,12 +325,14 @@ interface RunnerProps {
 }
 
 export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
-  const [view, setView] = useState<View>({ t: 'intro' });
+  // Jurus dipelajari dulu (tanpa jam). Jam sesi baru berjalan setelah anak menekan Mulai.
+  const lead = plan.phases[0]?.type === 'jurus' ? plan.phases[0] : null;
+  const [view, setView] = useState<View>({ t: lead ? 'prejurus' : 'intro' });
   const [quit, setQuit] = useState(false);
   const [hpTick, setHpTick] = useState(0);
   const [peek, setPeek] = useState(false);
   const r = useRef({ start: 0, phaseStart: 0, idx: 0, key: 0, answers: [] as SessionAnswer[], queue: null as PracticeQueue | null, hp: {} as Record<FactId, number>, finished: false, jurusStart: 0, pauseAt: 0 });
-  useTick(500, view.t !== 'intro');
+  useTick(500, view.t !== 'intro' && view.t !== 'prejurus');
 
   const finish = () => {
     if (r.current.finished) return;
@@ -391,7 +393,7 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
   const begin = () => {
     sfx('tap');
     r.current.start = performance.now();
-    startPhase(0);
+    startPhase(lead ? 1 : 0);
   };
 
   const onAnswer = (res: { ok: boolean; ms: number | null }) => {
@@ -413,12 +415,26 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
     serve(view.pi);
   };
 
-  if (view.t === 'intro') {
+  if (view.t === 'prejurus' && lead) {
+    return (
+      <div>
+        <div className="topbar">
+          <button className="xbtn" onClick={onQuit} aria-label="Keluar">
+            ✕
+          </button>
+          <span className="badge sun">Pelajari jurusnya dulu · belum dihitung waktu</span>
+        </div>
+        <JurusPlayer list={lead.jurus} onDone={() => setView({ t: 'intro' })} />
+      </div>
+    );
+  }
+
+  if (view.t === 'intro' || view.t === 'prejurus') {
     return (
       <div className="stack">
         {intro}
         <button className="btn" onClick={begin}>
-          Mulai!
+          {lead ? 'Mulai soal!' : 'Mulai!'}
         </button>
         <button className="link" onClick={onQuit}>
           Kembali
@@ -451,7 +467,7 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
         <span className="badge">{ph.label}</span>
       </div>
       {view.t === 'jurus' && ph.type === 'jurus' && <JurusPlayer list={ph.jurus} onDone={jurusEnd} />}
-      {view.t === 'quiz' && peek && <JurusPlayer list={[jurusForFact(view.fact)]} onDone={endPeek} />}
+      {view.t === 'quiz' && peek && <JurusPlayer list={[jurusForFact(view.fact)]} onDone={endPeek} label="Ingat lagi jurusnya · waktu berhenti" />}
       {view.t === 'quiz' && !peek && (
         <Quiz
           key={view.key}

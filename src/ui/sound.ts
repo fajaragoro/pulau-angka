@@ -41,17 +41,46 @@ export function sfx(kind: 'ok' | 'no' | 'tap' | 'win'): void {
   }
 }
 
-/** Narasi suara berbahasa Indonesia (suara bawaan perangkat, jalan offline). */
-export function speak(text: string): void {
-  if (!enabled || typeof speechSynthesis === 'undefined') return;
+let speakTimer = 0;
+let voice: SpeechSynthesisVoice | null = null;
+
+function loadVoice(): void {
   try {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(toSpeech(text));
-    u.lang = 'id-ID';
-    u.rate = 0.92;
-    const voice = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith('id'));
-    if (voice) u.voice = voice;
-    speechSynthesis.speak(u);
+    const all = speechSynthesis.getVoices();
+    voice = all.find((v) => v.lang.toLowerCase().replace('_', '-').startsWith('id')) ?? null;
+  } catch {
+    /* abaikan */
+  }
+}
+if (typeof speechSynthesis !== 'undefined') {
+  loadVoice();
+  speechSynthesis.addEventListener?.('voiceschanged', loadVoice);
+}
+
+/**
+ * Narasi suara berbahasa Indonesia (suara bawaan perangkat, jalan offline).
+ * Ucapan baru dijadwalkan sedikit setelah cancel(): di Chrome/Android, speak() yang dipanggil
+ * tepat setelah cancel() sering gagal atau terpotong.
+ */
+export function speak(text: string): void {
+  if (typeof speechSynthesis === 'undefined') return;
+  window.clearTimeout(speakTimer);
+  if (!enabled) return;
+  try {
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+    speakTimer = window.setTimeout(() => {
+      try {
+        if (!voice) loadVoice();
+        const u = new SpeechSynthesisUtterance(toSpeech(text));
+        u.lang = 'id-ID';
+        u.rate = 0.92;
+        if (voice) u.voice = voice;
+        speechSynthesis.resume();
+        speechSynthesis.speak(u);
+      } catch {
+        /* narasi tidak tersedia */
+      }
+    }, 120);
   } catch {
     /* narasi tidak tersedia */
   }
@@ -59,7 +88,8 @@ export function speak(text: string): void {
 
 export function stopSpeak(): void {
   try {
-    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+    window.clearTimeout(speakTimer);
+    if (typeof speechSynthesis !== 'undefined' && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
   } catch {
     /* abaikan */
   }

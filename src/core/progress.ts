@@ -139,7 +139,7 @@ export function applySession(p: Profile, plan: SessionPlan, answers: SessionAnsw
   pr.sessionsDone++;
   summary.streak = pr.streak;
 
-  const history = [...p.history, { date: today, day: plan.day, label: plan.title, correct, total: answers.length }];
+  const history = [...p.history, { date: today, day: plan.day, label: plan.title, correct, total: answers.length, facts: plan.newFacts }];
   return { profile: { ...p, facts, log, progress: pr, bonus, history, lastPlan: { date: today, plan } }, summary };
 }
 

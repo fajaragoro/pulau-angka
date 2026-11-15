@@ -70,6 +70,8 @@ export interface HistoryEntry {
   label: string;
   correct: number;
   total: number;
+  /** Fakta baru/bandel hari itu (untuk mengulang jurusnya dari peta perjalanan) */
+  facts?: FactId[];
 }
 
 export interface Profile {

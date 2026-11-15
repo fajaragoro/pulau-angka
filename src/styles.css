@@ -152,6 +152,8 @@ ul.clean li { margin: 3px 0; }
 .banner.bad { background: #ffd9d6; }
 .banner.good { background: #d4f2df; }
 
+.boat { animation: bob 2.2s ease-in-out infinite; }
+@keyframes bob { 50% { translate: 0 -4px; } }
 .kantin-ok { background: #eefaf2; }
 .kantin-no { background: #fff0ef; }
 

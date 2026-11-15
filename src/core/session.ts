@@ -221,7 +221,7 @@ export function buildDailyPlan(p: Profile, today: string, rng: Rng = Math.random
       day: pr.day,
       island,
       newFacts: news,
-      phases: [...warmup(p, today), { type: 'jurus', label: 'Ingat jurusnya', jurus: news.slice(0, 2).map(jurusForFact) }, practice(p, news, rng)],
+      phases: [{ type: 'jurus', label: 'Ingat jurusnya', jurus: news.slice(0, 2).map(jurusForFact) }, ...warmup(p, today), practice(p, news, rng)],
     };
   }
 
@@ -251,23 +251,18 @@ export function buildDailyPlan(p: Profile, today: string, rng: Rng = Math.random
       ...head,
       kind: 'bandel',
       newFacts: news,
-      phases: [...warmup(p, today), { type: 'jurus', label: 'Jurus untuk si bandel', jurus: news.map(jurusForFact) }, practice(p, news, rng)],
+      phases: [{ type: 'jurus', label: 'Jurus untuk si bandel', jurus: news.map(jurusForFact) }, ...warmup(p, today), practice(p, news, rng)],
     };
   }
 
-  // lesson
-  const phases: Phase[] = [];
-  if (d.part !== undefined && d.day <= 3) {
-    phases.push({ type: 'quiz', tag: 'baseline', label: `Tes awal bagian ${d.part + 1}`, items: shuffle(baselinePart(d.part), rng), budgetMs: null, test: true });
-  } else {
-    phases.push(...warmup(p, today));
-  }
+  // lesson: jurus dipelajari dulu, baru soal (tes awal/pemanasan), lalu latihan inti.
   let news: FactId[];
+  let jurus: Jurus[];
   if (d.newFacts) {
     news = d.newFacts;
-    phases.push({ type: 'jurus', label: 'Jurus baru', jurus: news.map(jurusForFact) });
+    jurus = news.map(jurusForFact);
   } else {
-    phases.push({ type: 'jurus', label: 'Jurus baru', jurus: [FAMILY_JURUS[d.jurus!]()] });
+    jurus = [FAMILY_JURUS[d.jurus!]()];
     const cands = d.family
       ? familyFacts(d.family)
       : learnedFacts(done).filter((f) => {
@@ -276,8 +271,21 @@ export function buildDailyPlan(p: Profile, today: string, rng: Rng = Math.random
         });
     news = pickWeak(p, cands, 4, rng);
   }
+  const phases: Phase[] = [{ type: 'jurus', label: 'Jurus baru', jurus }];
+  if (d.part !== undefined && d.day <= 3) {
+    phases.push({ type: 'quiz', tag: 'baseline', label: `Tes awal bagian ${d.part + 1}`, items: shuffle(baselinePart(d.part), rng), budgetMs: null, test: true });
+  } else {
+    phases.push(...warmup(p, today));
+  }
   phases.push(practice(p, news, rng));
   return { ...head, kind: 'lesson', newFacts: d.newFacts ?? [], phases };
+}
+
+/** Jurus yang diajarkan pada satu hari kurikulum (untuk mengulang pelajaran dari peta perjalanan). */
+export function dayJurus(day: number, facts: FactId[] = []): Jurus[] {
+  const d = dayDef(day);
+  if (d.jurus) return [FAMILY_JURUS[d.jurus]()];
+  return (d.newFacts ?? facts).map(jurusForFact);
 }
 
 /* ---------- Remedial: ulangi soal hari ini ---------- */

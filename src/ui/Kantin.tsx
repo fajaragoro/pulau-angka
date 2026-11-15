@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Profile } from '../core/types';
 import { learnedFacts } from '../core/curriculum';
-import { KANTIN_MAX, type KantinIcon, buildKantin, rupiah } from '../core/kantin';
+import { KANTIN_MAX, type KantinIcon, LEVEL_NAMES, buildKantin, rupiah } from '../core/kantin';
 import { Header, Keypad } from './parts';
 import { sfx, speak, stopSpeak } from './sound';
 
@@ -100,7 +100,7 @@ export function Kantin({ p, onBack }: { p: Profile; onBack: () => void }) {
         <div className="card stack">
           <Scene color={p.color} />
           <p>
-            Bel istirahat berbunyi! {p.name} pergi ke kantin membawa uang jajan. Ada {KANTIN_MAX} soal cerita: hitung harga jajanan dan kembaliannya, pakai perkalian yang sudah kamu hafal.
+            Bel istirahat berbunyi! {p.name} pergi ke kantin membawa uang jajan. Ada {KANTIN_MAX} soal cerita yang makin lama makin menantang: perkalian, pembagian, dan kembalian, pakai hafalan yang sudah kamu punya.
           </p>
           <p className="small muted">Tidak diburu waktu. Baca pelan-pelan, hitung, lalu tekan Jawab.</p>
         </div>
@@ -146,7 +146,7 @@ export function Kantin({ p, onBack }: { p: Profile; onBack: () => void }) {
 
   return (
     <div className="stack">
-      <Header title="Pergi ke Kantin" onBack={onBack} right={<span className="badge sun">Soal {i + 1}/{qs.length}</span>} />
+      <Header title="Pergi ke Kantin" onBack={onBack} right={<span className="badge sun">Soal {i + 1}/{qs.length} · {LEVEL_NAMES[q.level]}</span>} />
       <div className={'card stack ' + (fb === null ? '' : fb ? 'kantin-ok' : 'kantin-no')}>
         <div className="row">
           <ItemIcon icon={q.icon} />

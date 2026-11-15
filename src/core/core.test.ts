@@ -9,7 +9,7 @@ import { accessValid, backupDue, checkCode, exportBackup, newAccount, parseBacku
 import { hintForFact, jurusForFact } from './jurus';
 import { addDays, diffDays, mulberry32, toSpeech } from './util';
 import { KANTIN_MAX, buildKantin } from './kantin';
-import { REMEDIAL_PER_DAY, buildReplayPlan, kantinOpen, remedialLeft } from './session';
+import { REMEDIAL_PER_DAY, buildReplayPlan, dayJurus, kantinOpen, remedialLeft } from './session';
 import type { Profile } from './types';
 
 const D0 = '2026-01-01';
@@ -153,15 +153,15 @@ describe('kurikulum 30 hari', () => {
 });
 
 describe('penyusun sesi', () => {
-  it('H1: tes awal 19 fakta → jurus ×10&×1 → latihan', () => {
+  it('H1: jurus ×10&×1 dulu → tes awal 19 fakta → latihan', () => {
     const p = newProfile('Budi', 4, '#000', 0, D0);
     const plan = buildDailyPlan(p, D0, rng());
     expect(plan.capMs).toBe(SESSION_CAP_MS);
-    expect(plan.phases.map((x) => x.type)).toEqual(['quiz', 'jurus', 'practice']);
-    const q = plan.phases[0];
+    expect(plan.phases.map((x) => x.type)).toEqual(['jurus', 'quiz', 'practice']);
+    const q = plan.phases[1];
     expect(q.type === 'quiz' && q.items.length).toBe(19);
     expect(q.type === 'quiz' && q.tag).toBe('baseline');
-    const j = plan.phases[1];
+    const j = plan.phases[0];
     expect(j.type === 'jurus' && j.jurus[0].id).toBe('x10x1');
     const pr = plan.phases[2];
     expect(pr.type === 'practice' && pr.newFacts.length).toBeGreaterThanOrEqual(2);
@@ -435,6 +435,12 @@ describe('pergi ke kantin', () => {
         expect(q.answer).toBeLessThan(100000);
       }
       expect(qs.some((q) => q.kind === 'kembalian')).toBe(true);
+      // makin sulit: level tidak pernah turun, dari 1 sampai 3
+      expect(qs.map((q) => q.level)).toEqual([1, 1, 1, 2, 2, 2, 2, 3, 3, 3]);
+      // ada perkalian dan pembagian
+      expect(qs.filter((q) => q.kind === 'total').length).toBeGreaterThanOrEqual(2);
+      expect(qs.filter((q) => ['hargaSatuan', 'bisaBeli', 'patungan'].includes(q.kind))).toHaveLength(3);
+      expect(qs.filter((q) => q.explain.includes(':')).length).toBeGreaterThanOrEqual(3);
     }
   });
   it('terbuka setelah sesi harian selesai', () => {
@@ -492,5 +498,22 @@ describe('kartu ingat', () => {
     expect(hintForFact('7x8')).toContain('56');
     expect(hintForFact('3x7')).toBe('Dobel dulu jadi 14, lalu tambah 7.');
     expect(hintForFact('4x9')).toBe('Jurus jari: 3 puluhan dan 6 satuan.');
+  });
+});
+
+describe('peta perjalanan', () => {
+  it('jurus tiap hari bisa diulang; hari review/ujian tanpa jurus', () => {
+    expect(dayJurus(1).map((j) => j.id)).toEqual(['x10x1']);
+    expect(dayJurus(4).map((j) => j.id)).toEqual(['swap']);
+    expect(dayJurus(9).map((j) => j.id)).toEqual(['x3', 'x3']);
+    expect(dayJurus(19).map((j) => j.id)).toEqual(['seq5678']);
+    expect(dayJurus(6)).toEqual([]);
+    expect(dayJurus(7)).toEqual([]);
+    expect(dayJurus(23, ['6x7']).map((j) => j.id)).toEqual(['x6']);
+  });
+  it('riwayat menyimpan fakta hari itu', () => {
+    const { p } = playDays(8);
+    expect(p.history[7].facts).toEqual(['3x3', '3x4']);
+    expect(p.history).toHaveLength(8);
   });
 });

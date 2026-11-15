@@ -9,6 +9,7 @@ import { backupDue } from '../core/backup';
 import { todayStr } from '../core/util';
 import { Avatar, Creature, Header, Legend, MapGrid } from './parts';
 import { SessionRunner } from './Session';
+import { JourneyMap } from './Journey';
 import { useStore } from './store';
 
 export function CreatureShelf({ p }: { p: Profile }) {
@@ -42,11 +43,12 @@ interface HomeProps {
   onCert: () => void;
   onReplay: () => void;
   onKantin: () => void;
+  onDay: (day: number) => void;
   onSwitch: () => void;
   onParent: () => void;
 }
 
-export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onReplay, onKantin, onSwitch, onParent }: HomeProps) {
+export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onReplay, onKantin, onDay, onSwitch, onParent }: HomeProps) {
   const { account } = useStore();
   const today = todayStr();
   const pr = p.progress;
@@ -77,6 +79,17 @@ export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onReplay, on
           <b>Untuk Ayah/Bunda:</b> sudah waktunya mencadangkan data latihan. Ketuk untuk membuka Area Orang Tua.
         </button>
       )}
+
+      <div className="card stack tight">
+        <div className="row between">
+          <h3>Peta Perjalanan</h3>
+          <span className="small">
+            <b>{Math.min(pr.day - 1, TOTAL_DAYS)}</b>/{TOTAL_DAYS} pulau
+          </span>
+        </div>
+        <JourneyMap p={p} onDay={onDay} onToday={() => can && onPlay()} />
+        <p className="small muted">Perahumu ada di pulau hari ini. Ketuk pulau yang sudah dilewati untuk mengulang jurusnya.</p>
+      </div>
 
       <div className="card seabg stack">
         {done ? (
@@ -183,12 +196,12 @@ export function ExtraButtons({ p, onReplay, onKantin }: { p: Profile; onReplay: 
 }
 
 const KIND_INTRO: Record<string, string> = {
-  lesson: 'Pemanasan, jurus baru, lalu latihan.',
+  lesson: 'Jurusnya sudah kamu pelajari. Sekarang soal-soalnya: pemanasan dulu, lalu latihan. Lupa jurus di tengah soal? Tekan "Lihat jurus".',
   review: 'Hari ini mengulang yang sudah dipelajari. Tidak ada jurus baru.',
-  bandel: 'Hari ini melawan fakta yang paling bandel untukmu.',
+  bandel: 'Jurusnya sudah kamu ulang. Sekarang lawan fakta yang paling bandel untukmu.',
   exam: 'Ujian pulau: jawab semua soal sebisamu. Lulus jika 8 dari 10 benar.',
   reexam: 'Ujian ulang. Kamu sudah berlatih, sekarang pasti lebih siap!',
-  remedial: 'Latihan khusus untuk fakta yang kemarin belum berhasil.',
+  remedial: 'Jurusnya sudah kamu ulang. Sekarang latihan khusus untuk fakta yang belum berhasil di ujian.',
   final: 'Tes akhir: sama seperti tes awal. Tunjukkan semua yang sudah kamu hafal!',
 };
 
