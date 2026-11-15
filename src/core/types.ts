@@ -60,6 +60,8 @@ export interface Progress {
   final: Record<FactId, Grade>;
   startedAt: string | null;
   completedAt: string | null;
+  /** Banyaknya sesi kurikulum yang dimainkan pada satu tanggal (untuk batas akselerasi) */
+  todayCount?: { date: string; count: number };
 }
 
 export interface HistoryEntry {

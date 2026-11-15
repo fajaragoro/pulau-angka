@@ -3,7 +3,7 @@ import type { Profile } from '../core/types';
 import { CORE_FACTS, factLabel } from '../core/facts';
 import { getFact } from '../core/mastery';
 import { TOTAL_DAYS, coreIntroduced } from '../core/curriculum';
-import { STAGE_NAMES, type Summary, canPlayToday, counts, currentStreak, growthStage, mapColor, programDone } from '../core/progress';
+import { MAX_SESSIONS_PER_DAY, STAGE_NAMES, type Summary, canPlayToday, counts, currentStreak, dailyDone, sessionsLeft, growthStage, mapColor, programDone } from '../core/progress';
 import { BONUS_PER_DAY, BONUS_TITLES, type BonusMode, type SessionAnswer, type SessionPlan, bonusLeft, bonusOpen, bonusPool, buildDailyPlan, islandName, kantinOpen, remedialLeft } from '../core/session';
 import { backupDue } from '../core/backup';
 import { todayStr } from '../core/util';
@@ -94,13 +94,22 @@ export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onReplay, on
               <span className="small">{islandName(plan!.island)}</span>
             </div>
             <h2>{plan!.title}</h2>
-            {can ? (
+            {!dailyDone(p, today) ? (
               <button className="btn sun" onClick={onPlay}>
                 Main hari ini (3 menit)
               </button>
+            ) : can ? (
+              <>
+                <div className="banner good" style={{ color: 'var(--ink)' }}>
+                  Sesi hari ini sudah selesai. Masih semangat? Boleh lanjut ke hari berikutnya.
+                </div>
+                <button className="btn sun" onClick={onPlay}>
+                  Akselerasi: lanjut sekarang ({sessionsLeft(p, today)})
+                </button>
+              </>
             ) : (
               <div className="banner good" style={{ color: 'var(--ink)' }}>
-                Sesi hari ini sudah selesai. Hari berikutnya terbuka besok!
+                Sudah {MAX_SESSIONS_PER_DAY} sesi hari ini. Otak perlu istirahat supaya hafalannya menempel. Lanjut besok!
               </div>
             )}
           </>
@@ -217,7 +226,7 @@ export function DailySession({ p, replay, onFinish, onQuit }: { p: Profile; repl
   );
 }
 
-export function SummaryView({ p, s, onHome, onBonus, onCert, onReplay, onKantin }: { p: Profile; s: Summary; onHome: () => void; onBonus: () => void; onCert: () => void; onReplay: () => void; onKantin: () => void }) {
+export function SummaryView({ p, s, onHome, onBonus, onCert, onReplay, onKantin, onNext }: { p: Profile; s: Summary; onHome: () => void; onNext: () => void; onBonus: () => void; onCert: () => void; onReplay: () => void; onKantin: () => void }) {
   const today = todayStr();
   const bonus = s.kind === 'bonus';
   const head = s.exam ? (s.exam.passed ? `Lulus ${s.title}!` : 'Belum lulus, tidak apa-apa') : bonus ? `${s.title} selesai!` : s.replay ? 'Remedial selesai!' : `Hebat, ${p.name}!`;
@@ -288,6 +297,11 @@ export function SummaryView({ p, s, onHome, onBonus, onCert, onReplay, onKantin 
         </button>
       )}
       {!bonus && <ExtraButtons p={p} onReplay={onReplay} onKantin={onKantin} />}
+      {!bonus && canPlayToday(p, today) && (
+        <button className="btn white" onClick={onNext}>
+          Akselerasi: lanjut ke hari berikutnya ({sessionsLeft(p, today)})
+        </button>
+      )}
       {bonusOpen(p, today) && (
         <button className="btn sea" onClick={onBonus}>
           {bonus ? 'Ronde Bonus lagi' : 'Mau tambah? Ronde Bonus 60 detik'}

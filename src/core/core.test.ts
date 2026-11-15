@@ -3,10 +3,10 @@ import { ALL_FACTS, CORE_FACTS, JURUS_FACTS, answerOf, familyFacts, fid } from '
 import { FLUENT_MS, applyAnswer, gradeAnswer, newFactState } from './mastery';
 import { DAYS, baselinePart, coreIntroduced, finalPart, learnedFacts, taughtMults } from './curriculum';
 import { BONUS_MS, PracticeQueue, SESSION_CAP_MS, TEST_TIMEOUT_MS, bonusLeft, bonusOpen, buildBonusPlan, buildDailyPlan, buildDemoPlan, dueFacts, examItems, type SessionAnswer, type SessionPlan } from './session';
-import { applySession, canPlayToday, counts, currentStreak, gradeAllowed, mapColor, newProfile } from './progress';
+import { MAX_SESSIONS_PER_DAY, dailyDone, sessionsLeft, applySession, canPlayToday, counts, currentStreak, gradeAllowed, mapColor, newProfile } from './progress';
 import { buildReport } from './report';
 import { accessValid, backupDue, checkCode, exportBackup, newAccount, parseBackup } from './backup';
-import { jurusForFact } from './jurus';
+import { hintForFact, jurusForFact } from './jurus';
 import { addDays, diffDays, mulberry32, toSpeech } from './util';
 import { KANTIN_MAX, buildKantin } from './kantin';
 import { REMEDIAL_PER_DAY, buildReplayPlan, kantinOpen, remedialLeft } from './session';
@@ -231,12 +231,12 @@ describe('progres 30 hari', () => {
     expect(counts(p).fluent).toBe(55);
     expect(counts(p).core).toBe(15);
   });
-  it('satu sesi per hari kalender', () => {
+  it('sesi wajib harian tercatat selesai', () => {
     let p = newProfile('Budi', 4, '#000', 0, D0);
     expect(canPlayToday(p, D0)).toBe(true);
     p = play(p, buildDailyPlan(p, D0, rng()), D0).profile;
-    expect(canPlayToday(p, D0)).toBe(false);
-    expect(canPlayToday(p, addDays(D0, 1))).toBe(true);
+    expect(dailyDone(p, D0)).toBe(true);
+    expect(dailyDone(p, addDays(D0, 1))).toBe(false);
     expect(p.progress.day).toBe(2);
   });
   it('bolos memutus streak tapi tidak melewatkan materi', () => {
@@ -451,5 +451,46 @@ describe('narasi jurus', () => {
     expect(toSpeech('56 = 7 × 8')).toBe('56 sama dengan 7 kali 8');
     expect(toSpeech('14 + 7 → 21')).toBe('14 tambah 7 jadi 21');
     expect(toSpeech('Harga Rp2.000')).toBe('Harga 2000 rupiah');
+  });
+});
+
+describe('akselerasi', () => {
+  it('maksimal 3 hari kurikulum per hari kalender; hafal tetap butuh 3 hari berbeda', () => {
+    let p = newProfile('Budi', 4, '#000', 0, D0);
+    expect(sessionsLeft(p, D0)).toBe(MAX_SESSIONS_PER_DAY);
+    for (let i = 0; i < 3; i++) {
+      expect(canPlayToday(p, D0)).toBe(true);
+      const plan = buildDailyPlan(p, D0, rng());
+      expect(plan.day).toBe(i + 1);
+      p = play(p, plan, D0).profile;
+    }
+    expect(p.progress.day).toBe(4);
+    expect(canPlayToday(p, D0)).toBe(false);
+    expect(sessionsLeft(p, D0)).toBe(0);
+    expect(p.progress.streak).toBe(1);
+    expect(counts(p).mastered).toBe(0);
+    expect(canPlayToday(p, addDays(D0, 1))).toBe(true);
+    expect(sessionsLeft(p, addDays(D0, 1))).toBe(3);
+  });
+  it('program bisa tamat dalam 10 hari kalender', () => {
+    let p = newProfile('Budi', 4, '#000', 0, D0);
+    let date = D0;
+    let days = 0;
+    while (!p.progress.completedAt) {
+      days++;
+      while (canPlayToday(p, date)) p = play(p, buildDailyPlan(p, date, rng()), date).profile;
+      date = addDays(date, 1);
+    }
+    expect(days).toBe(10);
+    expect(p.progress.sessionsDone).toBe(30);
+  });
+});
+
+describe('kartu ingat', () => {
+  it('setiap fakta punya kalimat pengingat', () => {
+    for (const f of ALL_FACTS) expect(hintForFact(f).length).toBeGreaterThan(5);
+    expect(hintForFact('7x8')).toContain('56');
+    expect(hintForFact('3x7')).toBe('Dobel dulu jadi 14, lalu tambah 7.');
+    expect(hintForFact('4x9')).toBe('Jurus jari: 3 puluhan dan 6 satuan.');
   });
 });

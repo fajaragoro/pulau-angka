@@ -43,7 +43,7 @@ Settings → Environment variables, lalu deploy ulang.
 
 - Lancar = benar dan tombol angka pertama ditekan ≤ 3 detik. Hafal = lancar di 3 hari berbeda.
 - Review Leitner 1, 2, 4, 7 hari; jawaban salah muncul lagi 3 soal kemudian.
-- Sesi harian hard cap 180 detik, satu sesi per profil per hari kalender. Soal bertipe tes (tes awal,
+- Sesi harian hard cap 180 detik. Satu sesi wajib per hari; akselerasi boleh sampai 3 hari kurikulum per hari kalender. Soal bertipe tes (tes awal,
   ujian pulau, tes akhir) otomatis dilewati setelah 6 detik.
 - Ujian pulau lulus di 80%. Gagal → ulangan khusus → ujian ulang → (gagal lagi) ulangan → lanjut; jadwal mundur.
 - Bolos tidak melewatkan materi, hanya memutus streak.
@@ -55,3 +55,5 @@ Settings → Environment variables, lalu deploy ulang.
   ulangan khusus.
 - Pergi ke Kantin: 10 soal cerita (harga, total, kembalian) memakai perkalian yang sudah dipelajari; tanpa
   batas waktu dan tidak mengubah data penguasaan.
+- Kartu Ingat: saat anak salah (di luar tes), waktu berhenti, jawaban + satu kalimat jurus ditampilkan dan
+  dibacakan, lalu anak mengetik ulang dari ingatan sebelum lanjut. Tombol "Lihat jurus" juga menghentikan waktu.

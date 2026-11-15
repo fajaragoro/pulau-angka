@@ -20,9 +20,25 @@ export const gradeAllowed = (grade: number): boolean => grade >= 3 && grade <= 6
 
 export const programDone = (p: Profile): boolean => p.progress.completedAt !== null;
 
-/** Satu sesi harian per profil per hari kalender. */
+/** Akselerasi: paling banyak 3 hari kurikulum per hari kalender. */
+export const MAX_SESSIONS_PER_DAY = 3;
+
+export function sessionsToday(p: Profile, today: string): number {
+  const pr = p.progress;
+  if (pr.todayCount?.date === today) return pr.todayCount.count;
+  return pr.lastSessionDate === today ? 1 : 0;
+}
+
+/** Sesi wajib hari ini sudah selesai? */
+export const dailyDone = (p: Profile, today: string): boolean => sessionsToday(p, today) > 0;
+
+/** Sisa sesi kurikulum yang masih boleh dimainkan hari ini (sesi wajib + akselerasi). */
+export function sessionsLeft(p: Profile, today: string): number {
+  return programDone(p) ? 0 : Math.max(0, MAX_SESSIONS_PER_DAY - sessionsToday(p, today));
+}
+
 export function canPlayToday(p: Profile, today: string): boolean {
-  return !programDone(p) && p.progress.lastSessionDate !== today;
+  return sessionsLeft(p, today) > 0;
 }
 
 export function currentStreak(p: Profile, today: string): number {
@@ -117,6 +133,7 @@ export function applySession(p: Profile, plan: SessionPlan, answers: SessionAnsw
 
   pr.streak = pr.lastSessionDate === addDays(today, -1) ? pr.streak + 1 : pr.lastSessionDate === today ? pr.streak : 1;
   pr.bestStreak = Math.max(pr.bestStreak, pr.streak);
+  pr.todayCount = { date: today, count: sessionsToday(p, today) + 1 };
   pr.lastSessionDate = today;
   pr.startedAt = pr.startedAt ?? today;
   pr.sessionsDone++;

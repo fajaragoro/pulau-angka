@@ -150,3 +150,21 @@ export function jurusForFact(f: FactId): Jurus {
   if (f === '8x8') return jurusX8();
   return jurus7x7();
 }
+
+/** Satu kalimat pengingat jurus untuk "kartu ingat" (muncul saat anak salah menjawab). */
+export function hintForFact(f: FactId): string {
+  const [a, b] = parseFact(f);
+  const has = (n: number) => a === n || b === n;
+  const other = (n: number) => (a === n ? b : a);
+  if (has(1)) return 'Kali 1, angkanya tetap.';
+  if (has(10)) return 'Kali 10, tempel nol di belakangnya.';
+  if (has(2)) return `Dobel: ${other(2)} + ${other(2)} = ${other(2) * 2}.`;
+  if (has(5)) return `Setengah dari ${other(5) * 10} adalah ${other(5) * 5}.`;
+  if (has(9)) return `Jurus jari: ${other(9) - 1} puluhan dan ${10 - other(9)} satuan.`;
+  if (has(3)) return `Dobel dulu jadi ${other(3) * 2}, lalu tambah ${other(3)}.`;
+  if (has(4)) return `Dobel-dobel: ${other(4)} → ${other(4) * 2} → ${other(4) * 4}.`;
+  if (f === '7x8') return 'Urut 5-6-7-8: 56 = 7 × 8.';
+  if (has(6)) return `${other(6) * 5} tambah ${other(6)} lagi.`;
+  if (f === '8x8') return 'Dobel tiga kali: 16, 32, 64.';
+  return '35 + 14 = 49.';
+}

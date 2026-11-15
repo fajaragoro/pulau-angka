@@ -135,10 +135,10 @@ export default function App() {
           screen = <ProfileHome p={profile} onPlay={() => go('session')} onBonus={() => go('bonus')} onReport={() => setRoute({ n: 'report', from: 'phome' })} onCert={() => go('cert')} onReplay={startReplay} onKantin={() => go('kantin')} onSwitch={() => go('profiles')} onParent={() => setGate({ n: 'parent' })} />;
           break;
         case 'session':
-          screen = <DailySession p={profile} onFinish={finishSession} onQuit={() => go('phome')} />;
+          screen = <DailySession key={profile.progress.sessionsDone} p={profile} onFinish={finishSession} onQuit={() => go('phome')} />;
           break;
         case 'summary':
-          screen = <SummaryView p={profile} s={route.s} onHome={() => go('phome')} onBonus={() => go('bonus')} onCert={() => go('cert')} onReplay={startReplay} onKantin={() => go('kantin')} />;
+          screen = <SummaryView p={profile} s={route.s} onHome={() => go('phome')} onBonus={() => go('bonus')} onCert={() => go('cert')} onReplay={startReplay} onKantin={() => go('kantin')} onNext={() => go('session')} />;
           break;
         case 'replay':
           screen = <DailySession key="replay" p={profile} replay={route.plan} onFinish={finishSession} onQuit={() => go('phome')} />;
