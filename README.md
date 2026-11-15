@@ -48,3 +48,10 @@ Settings → Environment variables, lalu deploy ulang.
 - Ujian pulau lulus di 80%. Gagal → ulangan khusus → ujian ulang → (gagal lagi) ulangan → lanjut; jadwal mundur.
 - Bolos tidak melewatkan materi, hanya memutus streak.
 - Ronde Bonus: 60 detik, maksimal 3 per hari, setelah sesi harian selesai.
+- Jurus dibacakan dengan suara (Web Speech API, bahasa Indonesia, suara bawaan perangkat). Di akhir tiap jurus
+  anak memilih "Paham!" atau "Belum paham, ulangi". Waktu jurus yang dihitung ke sesi paling banyak 60 detik.
+- Remedial: setelah sesi harian, soal hari itu bisa diulang maksimal 2 kali. Hasilnya masuk data penguasaan,
+  tetapi tidak membuka hari baru dan tidak mengubah peta tes awal/akhir. Lulus ujian saat remedial membatalkan
+  ulangan khusus.
+- Pergi ke Kantin: 10 soal cerita (harga, total, kembalian) memakai perkalian yang sudah dipelajari; tanpa
+  batas waktu dan tidak mengubah data penguasaan.

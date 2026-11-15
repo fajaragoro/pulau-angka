@@ -26,6 +26,20 @@ export function formatTanggal(s: string): string {
   return `${d} ${BULAN[m - 1]} ${y}`;
 }
 
+/** Ubah teks bersimbol menjadi kalimat yang enak dibacakan (narasi suara). */
+export function toSpeech(t: string): string {
+  return t
+    .replace(/Rp\s?(\d[\d.]*)/g, (_, n: string) => `${n.replace(/\./g, '')} rupiah`)
+    .replace(/(\d)-(?=\d)/g, '$1, ')
+    .replace(/×/g, ' kali ')
+    .replace(/=/g, ' sama dengan ')
+    .replace(/\+/g, ' tambah ')
+    .replace(/→/g, ' jadi ')
+    .replace(/[_…]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export type Rng = () => number;
 
 export function mulberry32(seed: number): Rng {

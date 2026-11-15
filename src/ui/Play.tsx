@@ -4,7 +4,7 @@ import { CORE_FACTS, factLabel } from '../core/facts';
 import { getFact } from '../core/mastery';
 import { TOTAL_DAYS, coreIntroduced } from '../core/curriculum';
 import { STAGE_NAMES, type Summary, canPlayToday, counts, currentStreak, growthStage, mapColor, programDone } from '../core/progress';
-import { BONUS_PER_DAY, BONUS_TITLES, type BonusMode, type SessionAnswer, type SessionPlan, bonusLeft, bonusOpen, bonusPool, buildDailyPlan, islandName } from '../core/session';
+import { BONUS_PER_DAY, BONUS_TITLES, type BonusMode, type SessionAnswer, type SessionPlan, bonusLeft, bonusOpen, bonusPool, buildDailyPlan, islandName, kantinOpen, remedialLeft } from '../core/session';
 import { backupDue } from '../core/backup';
 import { todayStr } from '../core/util';
 import { Avatar, Creature, Header, Legend, MapGrid } from './parts';
@@ -40,11 +40,13 @@ interface HomeProps {
   onBonus: () => void;
   onReport: () => void;
   onCert: () => void;
+  onReplay: () => void;
+  onKantin: () => void;
   onSwitch: () => void;
   onParent: () => void;
 }
 
-export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onSwitch, onParent }: HomeProps) {
+export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onReplay, onKantin, onSwitch, onParent }: HomeProps) {
   const { account } = useStore();
   const today = todayStr();
   const pr = p.progress;
@@ -105,6 +107,8 @@ export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onSwitch, on
         )}
       </div>
 
+      <ExtraButtons p={p} onReplay={onReplay} onKantin={onKantin} />
+
       <div className="row">
         <button className="btn sea" disabled={!bonusOpen(p, today)} onClick={onBonus}>
           Ronde Bonus{pr.lastSessionDate === today || done ? ` (${left})` : ''}
@@ -150,6 +154,25 @@ export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onSwitch, on
   );
 }
 
+/** Remedial (ulangi soal hari ini) dan, di bawahnya, Pergi ke Kantin. Muncul setelah sesi harian selesai. */
+export function ExtraButtons({ p, onReplay, onKantin }: { p: Profile; onReplay: () => void; onKantin: () => void }) {
+  const today = todayStr();
+  const left = remedialLeft(p, today);
+  if (!kantinOpen(p, today)) return null;
+  return (
+    <>
+      {p.lastPlan?.date === today && (
+        <button className="btn white" disabled={left === 0} onClick={onReplay}>
+          Remedial: ulangi soal hari ini ({left})
+        </button>
+      )}
+      <button className="btn sun" onClick={onKantin}>
+        Pergi ke Kantin
+      </button>
+    </>
+  );
+}
+
 const KIND_INTRO: Record<string, string> = {
   lesson: 'Pemanasan, jurus baru, lalu latihan.',
   review: 'Hari ini mengulang yang sudah dipelajari. Tidak ada jurus baru.',
@@ -160,8 +183,9 @@ const KIND_INTRO: Record<string, string> = {
   final: 'Tes akhir: sama seperti tes awal. Tunjukkan semua yang sudah kamu hafal!',
 };
 
-export function DailySession({ p, onFinish, onQuit }: { p: Profile; onFinish: (plan: SessionPlan, a: SessionAnswer[]) => void; onQuit: () => void }) {
-  const plan = useMemo(() => buildDailyPlan(p, todayStr()), [p]);
+export function DailySession({ p, replay, onFinish, onQuit }: { p: Profile; replay?: SessionPlan; onFinish: (plan: SessionPlan, a: SessionAnswer[]) => void; onQuit: () => void }) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const plan = useMemo(() => replay ?? buildDailyPlan(p, todayStr()), []);
   const test = plan.phases[0]?.type === 'quiz' && plan.phases[0].test;
   return (
     <SessionRunner
@@ -171,10 +195,11 @@ export function DailySession({ p, onFinish, onQuit }: { p: Profile; onFinish: (p
       intro={
         <div className="card stack">
           <span className="badge sun" style={{ alignSelf: 'flex-start' }}>
-            {p.progress.pending ? `Pulau ${plan.island}` : `Hari ke-${plan.day}`} · {islandName(plan.island)}
+            {replay ? 'Remedial · ' : ''}
+            {plan.kind === 'remedial' || plan.kind === 'reexam' ? `Pulau ${plan.island}` : `Hari ke-${plan.day}`} · {islandName(plan.island)}
           </span>
           <h2>{plan.title}</h2>
-          <p>{KIND_INTRO[plan.kind]}</p>
+          <p>{replay ? 'Soal yang sama dengan sesi hari ini. Kesempatan memperbaiki hasilmu!' : KIND_INTRO[plan.kind]}</p>
           {test && <p className="small">Di bagian tes, tiap soal punya waktu 6 detik. Tidak tahu? Tekan Lewati. Tidak apa-apa salah.</p>}
           {plan.newFacts.length > 0 && (
             <div className="row" style={{ justifyContent: 'center' }}>
@@ -192,10 +217,10 @@ export function DailySession({ p, onFinish, onQuit }: { p: Profile; onFinish: (p
   );
 }
 
-export function SummaryView({ p, s, onHome, onBonus, onCert }: { p: Profile; s: Summary; onHome: () => void; onBonus: () => void; onCert: () => void }) {
+export function SummaryView({ p, s, onHome, onBonus, onCert, onReplay, onKantin }: { p: Profile; s: Summary; onHome: () => void; onBonus: () => void; onCert: () => void; onReplay: () => void; onKantin: () => void }) {
   const today = todayStr();
   const bonus = s.kind === 'bonus';
-  const head = s.exam ? (s.exam.passed ? `Lulus ${s.title}!` : 'Belum lulus, tidak apa-apa') : bonus ? `${s.title} selesai!` : `Hebat, ${p.name}!`;
+  const head = s.exam ? (s.exam.passed ? `Lulus ${s.title}!` : 'Belum lulus, tidak apa-apa') : bonus ? `${s.title} selesai!` : s.replay ? 'Remedial selesai!' : `Hebat, ${p.name}!`;
   return (
     <div className="stack">
       <h1 className="center">{head}</h1>
@@ -231,7 +256,7 @@ export function SummaryView({ p, s, onHome, onBonus, onCert }: { p: Profile; s: 
             <div className="banner good">Nilai {Math.round(s.exam.score * 100)}%. Pulau berikutnya terbuka!</div>
           ) : (
             <div className="banner">
-              Nilai {Math.round(s.exam.score * 100)}% (lulus di 80%). {p.progress.pending?.stage === 'remedial1' ? 'Besok ada latihan khusus, lalu ujian ulang.' : 'Besok ada latihan khusus, lalu lanjut ke pulau berikutnya.'}
+              Nilai {Math.round(s.exam.score * 100)}% (lulus di 80%). Boleh coba Remedial sekarang. {p.progress.pending?.stage === 'remedial1' ? 'Besok ada latihan khusus, lalu ujian ulang.' : 'Besok ada latihan khusus, lalu lanjut ke pulau berikutnya.'}
             </div>
           ))}
         {s.newFacts.length > 0 && (
@@ -262,6 +287,7 @@ export function SummaryView({ p, s, onHome, onBonus, onCert }: { p: Profile; s: 
           Ambil sertifikat
         </button>
       )}
+      {!bonus && <ExtraButtons p={p} onReplay={onReplay} onKantin={onKantin} />}
       {bonusOpen(p, today) && (
         <button className="btn sea" onClick={onBonus}>
           {bonus ? 'Ronde Bonus lagi' : 'Mau tambah? Ronde Bonus 60 detik'}

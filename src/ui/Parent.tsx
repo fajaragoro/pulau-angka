@@ -297,7 +297,7 @@ export function ParentArea({ onBack, onReport, onPrivacy }: { onBack: () => void
       <div className="card stack">
         <h3>Pengaturan</h3>
         <div className="row between">
-          <span>Efek suara</span>
+          <span>Suara & narasi jurus</span>
           <button className={'btn sm ' + (account.settings.sound ? 'sea' : 'white')} role="switch" aria-checked={account.settings.sound} onClick={() => update((a) => ({ ...a, settings: { ...a.settings, sound: !a.settings.sound } }))}>
             {account.settings.sound ? 'Menyala' : 'Mati'}
           </button>

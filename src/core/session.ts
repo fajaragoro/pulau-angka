@@ -34,6 +34,8 @@ export interface SessionPlan {
   phases: Phase[];
   newFacts: FactId[];
   bonusMode?: BonusMode;
+  /** true = remedial: mengulang sesi hari ini, tidak membuka hari baru */
+  replay?: boolean;
 }
 
 export interface SessionAnswer {
@@ -277,6 +279,24 @@ export function buildDailyPlan(p: Profile, today: string, rng: Rng = Math.random
   phases.push(practice(p, news, rng));
   return { ...head, kind: 'lesson', newFacts: d.newFacts ?? [], phases };
 }
+
+/* ---------- Remedial: ulangi soal hari ini ---------- */
+
+export const REMEDIAL_PER_DAY = 2;
+
+export function remedialLeft(p: Profile, today: string): number {
+  if (p.lastPlan?.date !== today) return 0;
+  return p.remedial?.date === today ? Math.max(0, REMEDIAL_PER_DAY - p.remedial.count) : REMEDIAL_PER_DAY;
+}
+
+/** Sesi yang sama dengan sesi harian hari ini, untuk anak yang belum puas dengan hasilnya. */
+export function buildReplayPlan(p: Profile, today: string): SessionPlan | null {
+  if (remedialLeft(p, today) === 0 || !p.lastPlan) return null;
+  return { ...p.lastPlan.plan, replay: true };
+}
+
+/** Kantin terbuka setelah sesi harian hari ini selesai (atau setelah program tamat). */
+export const kantinOpen = (p: Profile, today: string): boolean => p.progress.lastSessionDate === today || p.progress.completedAt !== null;
 
 /* ---------- Ronde Bonus ---------- */
 

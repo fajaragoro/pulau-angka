@@ -39,6 +39,8 @@ function cleanProfile(raw: unknown): Profile {
     progress: { ...newProgress(), ...raw.progress },
     bonus: isObj(raw.bonus) ? { date: raw.bonus.date ?? null, count: Number(raw.bonus.count) || 0, bestKilat: Number(raw.bonus.bestKilat) || 0 } : { date: null, count: 0, bestKilat: 0 },
     history: Array.isArray(raw.history) ? raw.history : [],
+    lastPlan: isObj(raw.lastPlan) && isDate(raw.lastPlan.date) && isObj(raw.lastPlan.plan) && Array.isArray(raw.lastPlan.plan.phases) ? (raw.lastPlan as Profile['lastPlan']) : undefined,
+    remedial: isObj(raw.remedial) && isDate(raw.remedial.date) ? { date: raw.remedial.date, count: Number(raw.remedial.count) || 0 } : undefined,
   };
 }
 

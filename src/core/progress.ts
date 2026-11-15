@@ -42,6 +42,7 @@ export interface Summary {
   programCompleted: boolean;
   streak: number;
   newRecord: boolean;
+  replay: boolean;
 }
 
 /** Terapkan hasil satu sesi (harian, ujian, atau bonus) ke profil. Fungsi murni. */
@@ -54,13 +55,29 @@ export function applySession(p: Profile, plan: SessionPlan, answers: SessionAnsw
   for (const a of answers) {
     facts[a.f] = applyAnswer(facts[a.f] ?? getFact(p, a.f), a.ok, a.ms, today);
     log.push({ f: a.f, ok: a.ok, ms: a.ms, d: today, src: a.tag === 'baseline' || a.tag === 'final' || a.tag === 'exam' ? 'ujian' : plan.source });
+    // Remedial tidak mengubah peta tes awal/akhir: yang dipakai tetap percobaan pertama.
+    if (plan.replay) continue;
     if (a.tag === 'baseline') pr.baseline[a.f] = gradeAnswer(a.ok, a.ms);
     if (a.tag === 'final') pr.final[a.f] = gradeAnswer(a.ok, a.ms);
   }
 
   const correct = answers.filter((a) => a.ok).length;
   const fluent = answers.filter((a) => gradeAnswer(a.ok, a.ms) === 'fluent').length;
-  const summary: Summary = { title: plan.title, kind: plan.kind, correct, fluent, total: answers.length, newFacts: plan.newFacts, exam: null, programCompleted: false, streak: pr.streak, newRecord: false };
+  const summary: Summary = { title: plan.title, kind: plan.kind, correct, fluent, total: answers.length, newFacts: plan.newFacts, exam: null, programCompleted: false, streak: pr.streak, newRecord: false, replay: !!plan.replay };
+
+  if (plan.replay) {
+    const remedial = p.remedial?.date === today ? { date: today, count: p.remedial.count + 1 } : { date: today, count: 1 };
+    if (plan.kind === 'exam' || plan.kind === 'reexam') {
+      const score = answers.length ? correct / answers.length : 0;
+      const passed = score >= EXAM_PASS;
+      const prev = pr.exams[plan.island];
+      pr.exams[plan.island] = { passed: passed || !!prev?.passed, attempts: (prev?.attempts ?? 0) + 1, best: Math.max(prev?.best ?? 0, score) };
+      summary.exam = { island: plan.island, passed, score };
+      // Lulus saat remedial → ulangan khusus dibatalkan.
+      if (passed && pr.pending?.island === plan.island) pr.pending = null;
+    }
+    return { profile: { ...p, facts, log, progress: pr, remedial }, summary };
+  }
 
   if (plan.kind === 'bonus') {
     bonus = bonus.date === today ? { ...bonus, count: bonus.count + 1 } : { ...bonus, date: today, count: 1 };
@@ -106,7 +123,7 @@ export function applySession(p: Profile, plan: SessionPlan, answers: SessionAnsw
   summary.streak = pr.streak;
 
   const history = [...p.history, { date: today, day: plan.day, label: plan.title, correct, total: answers.length }];
-  return { profile: { ...p, facts, log, progress: pr, bonus, history }, summary };
+  return { profile: { ...p, facts, log, progress: pr, bonus, history, lastPlan: { date: today, plan } }, summary };
 }
 
 /* ---------- Peta 10×10 ---------- */

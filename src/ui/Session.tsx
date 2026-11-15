@@ -4,7 +4,7 @@ import { answerOf, isCore, parseFact } from '../core/facts';
 import type { Jurus, Vis } from '../core/jurus';
 import { PracticeQueue, type SessionAnswer, type SessionPlan, TEST_TIMEOUT_MS } from '../core/session';
 import { Creature, Keypad, ShrinkGrid, useTick } from './parts';
-import { sfx } from './sound';
+import { sfx, speak, stopSpeak } from './sound';
 
 /* ---------- Satu soal: jawab dengan mengetik, auto-submit ---------- */
 
@@ -160,10 +160,18 @@ function VisView({ vis }: { vis: Vis }) {
 export function JurusPlayer({ list, onDone }: { list: Jurus[]; onDone: () => void }) {
   const [ji, setJi] = useState(0);
   const [si, setSi] = useState(0);
+  const [round, setRound] = useState(0);
   const j = list[ji];
   const step = j.steps[si];
   const lastStep = si === j.steps.length - 1;
   const lastJurus = ji === list.length - 1;
+
+  // Narasi: tiap langkah dibacakan, seperti ada guru yang menjelaskan.
+  useEffect(() => {
+    speak(step.say);
+    return stopSpeak;
+  }, [step, round]);
+
   const next = () => {
     sfx('tap');
     if (!lastStep) setSi(si + 1);
@@ -171,6 +179,11 @@ export function JurusPlayer({ list, onDone }: { list: Jurus[]; onDone: () => voi
       setJi(ji + 1);
       setSi(0);
     } else onDone();
+  };
+  const repeat = () => {
+    sfx('tap');
+    setSi(0);
+    setRound(round + 1);
   };
   return (
     <div className="stack">
@@ -180,20 +193,37 @@ export function JurusPlayer({ list, onDone }: { list: Jurus[]; onDone: () => voi
         </div>
         <h2>{j.title}</h2>
       </div>
-      <div className="card stack center" key={`${ji}-${si}`} style={{ minHeight: 250, justifyContent: 'center' }}>
+      <div className="card stack center" key={`${ji}-${si}-${round}`} style={{ minHeight: 250, justifyContent: 'center' }}>
         <VisView vis={step.vis} />
         <p className="fadein" style={{ fontSize: '1.08rem', fontWeight: 500 }}>
           {step.say}
         </p>
+        <button className="btn white sm" onClick={() => speak(step.say)}>
+          Dengar lagi
+        </button>
       </div>
       <div className="row" style={{ justifyContent: 'center', gap: 6 }}>
         {j.steps.map((_, i) => (
           <span key={i} style={{ width: 10, height: 10, borderRadius: 5, border: '2px solid var(--ink)', background: i <= si ? 'var(--ink)' : '#fff' }} />
         ))}
       </div>
-      <button className="btn sea" onClick={next}>
-        {lastStep && lastJurus ? 'Siap, ayo latihan!' : 'Lanjut'}
-      </button>
+      {lastStep ? (
+        <>
+          <p className="center" style={{ fontWeight: 600 }}>
+            Sudah paham jurusnya?
+          </p>
+          <button className="btn sea" onClick={next}>
+            Paham!
+          </button>
+          <button className="btn white" onClick={repeat}>
+            Belum paham, ulangi
+          </button>
+        </>
+      ) : (
+        <button className="btn sea" onClick={next}>
+          Lanjut
+        </button>
+      )}
     </div>
   );
 }
@@ -201,6 +231,8 @@ export function JurusPlayer({ list, onDone }: { list: Jurus[]; onDone: () => voi
 /* ---------- Pelari sesi: pemanasan → jurus → latihan, dengan hard cap waktu ---------- */
 
 const HP_START = 4;
+/** Waktu jurus yang dihitung ke sesi paling banyak 60 detik; mengulang jurus tidak memotong waktu latihan. */
+const JURUS_BUDGET_MS = 60_000;
 
 type View = { t: 'intro' } | { t: 'quiz'; fact: FactId; flip: boolean; test: boolean; key: number; pi: number } | { t: 'jurus'; pi: number };
 
@@ -215,7 +247,7 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
   const [view, setView] = useState<View>({ t: 'intro' });
   const [quit, setQuit] = useState(false);
   const [hpTick, setHpTick] = useState(0);
-  const r = useRef({ start: 0, phaseStart: 0, idx: 0, key: 0, answers: [] as SessionAnswer[], queue: null as PracticeQueue | null, hp: {} as Record<FactId, number>, finished: false });
+  const r = useRef({ start: 0, phaseStart: 0, idx: 0, key: 0, answers: [] as SessionAnswer[], queue: null as PracticeQueue | null, hp: {} as Record<FactId, number>, finished: false, jurusStart: 0 });
   useTick(500, view.t !== 'intro');
 
   const finish = () => {
@@ -229,7 +261,10 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
     const ph = plan.phases[pi];
     if (!ph) return finish();
     const now = performance.now();
-    if (ph.type === 'jurus') return setView({ t: 'jurus', pi });
+    if (ph.type === 'jurus') {
+      s.jurusStart = now;
+      return setView({ t: 'jurus', pi });
+    }
     const fixedTest = ph.type === 'quiz' && ph.test && ph.budgetMs === null;
     // Hard cap: jika waktu habis, soal yang sedang berjalan sudah selesai → tutup sesi.
     if (!fixedTest && now - s.start >= plan.capMs) return finish();
@@ -292,7 +327,13 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
     );
   }
 
-  const elapsed = performance.now() - r.current.start;
+  const jurusEnd = () => {
+    const s = r.current;
+    s.start += Math.max(0, performance.now() - s.jurusStart - JURUS_BUDGET_MS);
+    if (view.t === 'jurus') startPhase(view.pi + 1);
+  };
+  const nowMs = view.t === 'jurus' ? Math.min(performance.now(), r.current.jurusStart + JURUS_BUDGET_MS) : performance.now();
+  const elapsed = nowMs - r.current.start;
   const pct = Math.max(0, 100 - (elapsed / plan.capMs) * 100);
   const ph = plan.phases[view.pi];
   const hp = view.t === 'quiz' ? (r.current.hp[view.fact] ?? HP_START) : HP_START;
@@ -309,7 +350,7 @@ export function SessionRunner({ plan, intro, onFinish, onQuit }: RunnerProps) {
         </div>
         <span className="badge">{ph.label}</span>
       </div>
-      {view.t === 'jurus' && ph.type === 'jurus' && <JurusPlayer list={ph.jurus} onDone={() => startPhase(view.pi + 1)} />}
+      {view.t === 'jurus' && ph.type === 'jurus' && <JurusPlayer list={ph.jurus} onDone={jurusEnd} />}
       {view.t === 'quiz' && (
         <Quiz
           key={view.key}

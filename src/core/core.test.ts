@@ -7,7 +7,9 @@ import { applySession, canPlayToday, counts, currentStreak, gradeAllowed, mapCol
 import { buildReport } from './report';
 import { accessValid, backupDue, checkCode, exportBackup, newAccount, parseBackup } from './backup';
 import { jurusForFact } from './jurus';
-import { addDays, diffDays, mulberry32 } from './util';
+import { addDays, diffDays, mulberry32, toSpeech } from './util';
+import { KANTIN_MAX, buildKantin } from './kantin';
+import { REMEDIAL_PER_DAY, buildReplayPlan, kantinOpen, remedialLeft } from './session';
 import type { Profile } from './types';
 
 const D0 = '2026-01-01';
@@ -383,5 +385,71 @@ describe('cadangan & kode akses', () => {
     expect(accessValid(old, { code: '8822', keepOldUsers: true })).toBe(true);
     expect(accessValid(old, { code: '8822', keepOldUsers: false })).toBe(false);
     expect(accessValid(null, { code: '3016', keepOldUsers: true })).toBe(false);
+  });
+});
+
+describe('remedial: ulangi soal hari ini', () => {
+  it('mengulang sesi yang sama, maksimal 2 kali, tanpa membuka hari baru atau mengubah peta tes awal', () => {
+    let p = newProfile('Budi', 4, '#000', 0, D0);
+    expect(buildReplayPlan(p, D0)).toBeNull();
+    const plan = buildDailyPlan(p, D0, rng());
+    p = play(p, plan, D0, () => false).profile;
+    expect(Object.values(p.progress.baseline).every((g) => g === 'wrong')).toBe(true);
+    expect(remedialLeft(p, D0)).toBe(REMEDIAL_PER_DAY);
+    const replay = buildReplayPlan(p, D0)!;
+    expect(replay.replay).toBe(true);
+    expect(replay.phases).toEqual(plan.phases);
+    const res = play(p, replay, D0);
+    p = res.profile;
+    expect(res.summary.replay).toBe(true);
+    expect(p.progress.day).toBe(2);
+    expect(p.progress.sessionsDone).toBe(1);
+    expect(Object.values(p.progress.baseline).every((g) => g === 'wrong')).toBe(true);
+    expect(counts(p).fluent).toBeGreaterThan(0);
+    p = play(p, buildReplayPlan(p, D0)!, D0).profile;
+    expect(remedialLeft(p, D0)).toBe(0);
+    expect(buildReplayPlan(p, D0)).toBeNull();
+    expect(buildReplayPlan(p, addDays(D0, 1))).toBeNull();
+  });
+  it('lulus ujian saat remedial membatalkan ulangan khusus', () => {
+    let { p, date } = playDays(6);
+    p = play(p, buildDailyPlan(p, date, rng()), date, () => false).profile;
+    expect(p.progress.pending?.stage).toBe('remedial1');
+    p = play(p, buildReplayPlan(p, date)!, date).profile;
+    expect(p.progress.pending).toBeNull();
+    expect(p.progress.exams[1].passed).toBe(true);
+    expect(buildDailyPlan(p, addDays(date, 1), rng()).day).toBe(8);
+  });
+});
+
+describe('pergi ke kantin', () => {
+  it('maksimal 10 soal cerita dengan jawaban yang benar dan masuk akal', () => {
+    for (let seed = 1; seed <= 50; seed++) {
+      const qs = buildKantin('Rara', learnedFacts(seed % 23), mulberry32(seed));
+      expect(qs).toHaveLength(KANTIN_MAX);
+      for (const q of qs) {
+        expect(Number.isInteger(q.answer) && q.answer > 0).toBe(true);
+        expect(q.text).toContain('Rara');
+        if (q.unit === 'rp') expect(q.answer % 1000).toBe(0);
+        else expect(q.answer).toBeLessThanOrEqual(10);
+        expect(q.answer).toBeLessThan(100000);
+      }
+      expect(qs.some((q) => q.kind === 'kembalian')).toBe(true);
+    }
+  });
+  it('terbuka setelah sesi harian selesai', () => {
+    let p = newProfile('Budi', 4, '#000', 0, D0);
+    expect(kantinOpen(p, D0)).toBe(false);
+    p = play(p, buildDailyPlan(p, D0, rng()), D0).profile;
+    expect(kantinOpen(p, D0)).toBe(true);
+    expect(kantinOpen(p, addDays(D0, 1))).toBe(false);
+  });
+});
+
+describe('narasi jurus', () => {
+  it('simbol dibacakan sebagai kata', () => {
+    expect(toSpeech('56 = 7 × 8')).toBe('56 sama dengan 7 kali 8');
+    expect(toSpeech('14 + 7 → 21')).toBe('14 tambah 7 jadi 21');
+    expect(toSpeech('Harga Rp2.000')).toBe('Harga 2000 rupiah');
   });
 });

@@ -1,3 +1,5 @@
+import type { SessionPlan } from './session';
+
 /** Kunci fakta unik, selalu a ≤ b. Contoh: "7x8". a×b dan b×a berbagi status. */
 export type FactId = string;
 
@@ -80,6 +82,9 @@ export interface Profile {
   progress: Progress;
   bonus: { date: string | null; count: number; bestKilat: number };
   history: HistoryEntry[];
+  /** Sesi harian terakhir, supaya bisa diulang (remedial) di hari yang sama */
+  lastPlan?: { date: string; plan: SessionPlan };
+  remedial?: { date: string; count: number };
 }
 
 export interface Account {

@@ -1,8 +1,11 @@
+import { toSpeech } from '../core/util';
+
 let ctx: AudioContext | null = null;
 let enabled = true;
 
 export function setSound(on: boolean): void {
   enabled = on;
+  if (!on) stopSpeak();
 }
 
 function tone(freq: number, start: number, dur: number, type: OscillatorType = 'triangle', vol = 0.12): void {
@@ -35,5 +38,29 @@ export function sfx(kind: 'ok' | 'no' | 'tap' | 'win'): void {
     }
   } catch {
     /* audio tidak tersedia */
+  }
+}
+
+/** Narasi suara berbahasa Indonesia (suara bawaan perangkat, jalan offline). */
+export function speak(text: string): void {
+  if (!enabled || typeof speechSynthesis === 'undefined') return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(toSpeech(text));
+    u.lang = 'id-ID';
+    u.rate = 0.92;
+    const voice = speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith('id'));
+    if (voice) u.voice = voice;
+    speechSynthesis.speak(u);
+  } catch {
+    /* narasi tidak tersedia */
+  }
+}
+
+export function stopSpeak(): void {
+  try {
+    if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  } catch {
+    /* abaikan */
   }
 }
