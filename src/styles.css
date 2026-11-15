@@ -152,6 +152,9 @@ ul.clean li { margin: 3px 0; }
 .banner.bad { background: #ffd9d6; }
 .banner.good { background: #d4f2df; }
 
+.journey { max-height: 470px; overflow-y: auto; border: 3px solid var(--ink); border-radius: 14px; overscroll-behavior: contain; }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.25; } }
 .boat { animation: bob 2.2s ease-in-out infinite; }
 @keyframes bob { 50% { translate: 0 -4px; } }
 .kantin-ok { background: #eefaf2; }

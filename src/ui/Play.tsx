@@ -88,7 +88,7 @@ export function ProfileHome({ p, onPlay, onBonus, onReport, onCert, onReplay, on
           </span>
         </div>
         <JourneyMap p={p} onDay={onDay} onToday={() => can && onPlay()} />
-        <p className="small muted">Perahumu ada di pulau hari ini. Ketuk pulau yang sudah dilewati untuk mengulang jurusnya.</p>
+        <p className="small muted">Geser peta untuk melihat seluruh perjalanan. Perahumu ada di titik hari ini; ketuk titik yang sudah dilewati untuk mengulang jurusnya.</p>
       </div>
 
       <div className="card seabg stack">
